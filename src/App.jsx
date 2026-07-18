@@ -1,5 +1,103 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { safeGet, safeSet } from "./lib/storage";
+import React, { useState, useEffect, useRef } from "react";
+import { Wind, Activity, Droplet, Brain, Eye, AlertTriangle, CheckCircle2, XCircle, Syringe, Heart, RotateCcw } from "lucide-react";
+
+// ---------------------------------------------------------------------------
+// SCENARIO DATA — this is the "script" for one case. Every future scenario
+// (sepsis, DKA, stroke, etc.) will follow this exact same shape, so once this
+// engine works, adding the other 39 is just writing more objects like this.
+// ---------------------------------------------------------------------------
+
+const SCENARIO = {
+  title: "Anaphylaxis",
+  subtitle: "Post-antibiotic reaction — Bay 4",
+  brief:
+    "You're called to a 34-year-old who received IV co-amoxiclav 8 minutes ago for a chest infection. The nurse says they 'suddenly came out in a rash and started struggling to breathe.'",
+  startVitals: { hr: 128, sbp: 88, spo2: 91, rr: 28, temp: 37.1, gcs: 15 },
+
+  steps: [
+    // ---------------- AIRWAY ----------------
+    {
+      letter: "A",
+      label: "Airway",
+      icon: "wind",
+      assessment:
+        "You look in the mouth and listen at the airway. There's audible stridor and visible swelling of the lips and tongue.",
+      question: "What do you do first?",
+      options: [
+        {
+          text: "Give IM adrenaline 500mcg into the anterolateral thigh",
+          correct: true,
+          feedback:
+            "Correct. Adrenaline is the single most important drug in anaphylaxis and should never be delayed once it's suspected — it works on the airway swelling, breathing and circulation all at once.",
+          vitals: { hr: -6, spo2: +3, sbp: +6 },
+        },
+        {
+          text: "Give an antihistamine and wait to see if it settles",
+          correct: false,
+          feedback:
+            "Antihistamines don't treat the life-threatening features of anaphylaxis and waiting costs time. The swelling worsens while you wait.",
+          vitals: { hr: +10, spo2: -4, sbp: -8 },
+          cascade:
+            "The tongue swelling increases. Stridor becomes louder and the patient starts pointing at their throat, panicking.",
+        },
+        {
+          text: "Call for a senior review before doing anything",
+          correct: false,
+          feedback:
+            "Getting help is right — but not instead of treating. In anaphylaxis, adrenaline comes first, help is called alongside it, not before it.",
+          vitals: { hr: +8, spo2: -3, sbp: -6 },
+          cascade:
+            "Precious time passes. The airway swelling is now visibly worse.",
+        },
+      ],
+    },
+    // ---------------- BREATHING ----------------
+    {
+      letter: "B",
+      label: "Breathing",
+      icon: "activity",
+      assessment:
+        "Sats are low, there's audible wheeze throughout both lung fields, and the patient is using their accessory muscles to breathe.",
+      question: "What's your next action?",
+      options: [
+        {
+          text: "High-flow oxygen 15L via non-rebreathe mask",
+          correct: true,
+          feedback:
+            "Correct. Every anaphylaxis patient gets high-flow oxygen, regardless of their starting sats.",
+          vitals: { spo2: +5, hr: -3 },
+        },
+        {
+          text: "Nasal cannula at 2L",
+          correct: false,
+          feedback:
+            "Not enough oxygen is being delivered for a patient this unwell — anaphylaxis needs high-flow, high-concentration oxygen.",
+          vitals: { spo2: -3, hr: +5 },
+          cascade: "Sats continue to drift down. The patient looks more anxious and breathless.",
+        },
+        {
+          text: "Sit the patient up and reassure them",
+          correct: false,
+          feedback:
+            "Reassurance matters, but on its own it does nothing for the falling oxygen levels — oxygen needs to go on now.",
+          vitals: { spo2: -4, hr: +6 },
+          cascade: "The wheeze worsens and the patient becomes visibly more distressed and tachypnoeic.",
+        },
+      ],
+    },
+    // ---------------- CIRCULATION ----------------
+    {
+      letter: "C",
+      label: "Circulation",
+      icon: "droplet",
+      assessment:
+        "Blood pressure is low, heart rate is fast and thready, and the patient's peripheries are cool and mottled.",
+      question: "What do you do?",
+      options: [
+        {
+          text: "IV access x2 and a
+ { safeGet, safeSet } from "./lib/storage";
 
 /* ============================================================
    DR RICKY'S RESUS CHALLENGE — prototype v0.1
